@@ -1,16 +1,16 @@
 from bisect import bisect_right
-from typing import Iterable
 from pathlib import Path
-
-import torch
+from typing import Iterable
+import os
 import pytorch_lightning as pl
-from torch.utils.data import Subset, ConcatDataset
+import torch
+from torch.utils.data import ConcatDataset, Subset
 from torchaudio.datasets import COMMONVOICE
 
 
 class LanguageDataModule(pl.LightningDataModule):
 
-    def __init__(self, batch_size, languages: Iterable[str], num_workers=0, root=Path(), balanced=True):
+    def __init__(self, batch_size, languages: Iterable[str], num_workers=0, root=Path('./dataset/common-voice'), balanced=True):
         self.batch_size = batch_size
         self.languages = languages
         self.num_workers = num_workers
@@ -89,7 +89,6 @@ class CommonVoiceDataset(ConcatDataset):
             "interlingua": "ia",
             "latvian": "lv",
             "japanese": "ja",
-            "votic": "vot",
             "abkhaz": "ab",
             "cantonese": "zh-HK",
             "romansh sursilvan": "rm-sursilv"
@@ -103,11 +102,25 @@ class CommonVoiceDataset(ConcatDataset):
             assert language in self.supported_languages, (
                 f"Got {language}, options are {self.supported_languages.keys()}"
             )
+        
+        for language in languages:
+            path = f"./{root}/CommonVoice/cv-corpus-4-2019-12-10/{self.supported_languages[language]}/"
+            Path(path).mkdir(parents=True, exist_ok=True)
 
+        if download:
+            try:
+                datasets = [
+                    COMMONVOICE(root=f"{root}/CommonVoice/cv-corpus-4-2019-12-10/{self.supported_languages[language]}/",
+                    tsv=split, url=language, download=download, version='cv-corpus-4-2019-12-10')
+                    for language in languages
+                ]
+            except FileNotFoundError:
+                pass
         datasets = [
-            COMMONVOICE(root=root, tsv=split, url=language, download=download)
-            for language in languages
-        ]
+                    COMMONVOICE(root=root,
+                    tsv=split, url=language, download=download, version='cv-corpus-4-2019-12-10')
+                    for language in languages
+                ]
 
         if balanced:
             min_length = min(len(dataset) for dataset in datasets)
