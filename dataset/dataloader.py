@@ -10,7 +10,7 @@ from torchaudio.datasets import COMMONVOICE
 
 class LanguageDataModule(pl.LightningDataModule):
 
-    def __init__(self, batch_size, languages: Iterable[str], num_workers=0, root=Path('./dataset/common-voice'), balanced=True):
+    def __init__(self, batch_size, languages: Iterable[str], num_workers=0, root=Path(), balanced=True):
         self.batch_size = batch_size
         self.languages = languages
         self.num_workers = num_workers
@@ -26,8 +26,8 @@ class LanguageDataModule(pl.LightningDataModule):
         )
 
     def prepare_data(self):
-        CommonVoiceDataset(self.root, self.languages, self.balanced, download=True, split='train')
-        CommonVoiceDataset(self.root, self.languages, self.balanced, download=True, split='test')
+        CommonVoiceDataset(self.root, self.languages, balanced=False, download=True, split='train')
+        CommonVoiceDataset(self.root, self.languages, balanced=False, download=True, split='test')
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -93,40 +93,45 @@ class CommonVoiceDataset(ConcatDataset):
             "cantonese": "zh-HK",
             "romansh sursilvan": "rm-sursilv"
         }
+    version = 'cv-corpus-4-2019-12-10'
+    dataset_dir = 'CommonVoice'
 
-    def __init__(self, root, languages: Iterable[str], balanced=True, download=False, split='train'):
+
+    def __init__(self, root: Path, languages: Iterable[str], balanced=True, download=False, split='train'):
         assert split in ('train', 'test', 'validated')
         split += '.tsv' # don't know why torch audio commonvoice requires this ext
+
+        self.root = root
 
         for language in languages:
             assert language in self.supported_languages, (
                 f"Got {language}, options are {self.supported_languages.keys()}"
             )
-        
+
         for language in languages:
-            path = f"./{root}/CommonVoice/cv-corpus-4-2019-12-10/{self.supported_languages[language]}/"
-            Path(path).mkdir(parents=True, exist_ok=True)
+            Path(self._get_language_dir(language)).mkdir(parents=True, exist_ok=True)
 
         if download:
-            try:
-                datasets = [
-                    COMMONVOICE(root=f"{root}/CommonVoice/cv-corpus-4-2019-12-10/{self.supported_languages[language]}/",
-                    tsv=split, url=language, download=download, version='cv-corpus-4-2019-12-10')
-                    for language in languages
-                ]
-            except FileNotFoundError:
-                pass
+            for language in languages:
+                try:
+                    COMMONVOICE(
+                        root=self._get_language_dir(language),
+                        tsv=split, url=language, download=download, version=self.version
+                    )
+                except FileNotFoundError:
+                    pass
+
         datasets = [
-                    COMMONVOICE(root=root,
-                    tsv=split, url=language, download=download, version='cv-corpus-4-2019-12-10')
-                    for language in languages
-                ]
+                COMMONVOICE(root=root,
+                tsv=split, url=language, download=download, version=self.version)
+                for language in languages
+        ]
 
         if balanced:
             min_length = min(len(dataset) for dataset in datasets)
             datasets = [
-                Subset(dataset, list(*range(min_length)))
-                for dataset in dataset
+                Subset(dataset, list(range(min_length)))
+                for dataset in datasets
             ]
 
         super(CommonVoiceDataset, self).__init__(datasets)
@@ -138,8 +143,11 @@ class CommonVoiceDataset(ConcatDataset):
 
         return data, target
 
+    def _get_language_dir(self, language):
+        return self.root / self.dataset_dir / self.version / self.supported_languages[language]
+
 
 if __name__ == '__main__':
-    module = LanguageDataModule(languages=('votic', 'abkhaz'), batch_size=2)
+    module = LanguageDataModule(languages=('abkhaz','interlingua'), batch_size=2)
     module.prepare_data()
     breakpoint()
