@@ -130,3 +130,10 @@ dmypy.json
 
 # Project specific
 *.tar.gz
+
+# vscode
+.vscode/
+
+# data
+*.mp3
+*.tsv
