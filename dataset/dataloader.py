@@ -19,15 +19,14 @@ class LanguageDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         self.train_dataset = CommonVoiceDataset(
-            self.root, self.languages, self.balanced, download=False, split='train'
+            self.root, self.languages, self.balanced, split='train'
         )
         self.validation_dataset = CommonVoiceDataset(
-            self.root, self.languages, self.balanced, download=False, split='test'
+            self.root, self.languages, self.balanced, split='test'
         )
 
     def prepare_data(self):
-        CommonVoiceDataset(self.root, self.languages, balanced=False, download=True, split='train')
-        CommonVoiceDataset(self.root, self.languages, balanced=False, download=True, split='test')
+        CommonVoiceDataset.download(self.root, self.languages)
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -97,34 +96,23 @@ class CommonVoiceDataset(ConcatDataset):
     dataset_dir = 'CommonVoice'
 
 
-    def __init__(self, root: Path, languages: Iterable[str], balanced=True, download=False, split='train'):
+    def __init__(self, root: Path, languages: Iterable[str], balanced=True, split='train'):
         assert split in ('train', 'test', 'validated')
-        split += '.tsv' # don't know why torch audio commonvoice requires this ext
+        split += '.tsv'
 
         self.root = root
+        self.languages = languages
 
         for language in languages:
             assert language in self.supported_languages, (
                 f"Got {language}, options are {self.supported_languages.keys()}"
             )
 
-        for language in languages:
-            Path(self._get_language_dir(language)).mkdir(parents=True, exist_ok=True)
-
-        if download:
-            for language in languages:
-                try:
-                    COMMONVOICE(
-                        root=self._get_language_dir(language),
-                        tsv=split, url=language, download=download, version=self.version
-                    )
-                except FileNotFoundError:
-                    pass
-
+        # FIXME: add appropriate message if dataset isn't downloaded first
         datasets = [
-                COMMONVOICE(root=root,
-                tsv=split, url=language, download=download, version=self.version)
-                for language in languages
+            COMMONVOICE(root=root,
+            tsv=split, url=language, download=False, version=self.version)
+            for language in languages
         ]
 
         if balanced:
@@ -143,8 +131,23 @@ class CommonVoiceDataset(ConcatDataset):
 
         return data, target
 
-    def _get_language_dir(self, language):
-        return self.root / self.dataset_dir / self.version / self.supported_languages[language]
+
+    @classmethod
+    def _get_language_dir(cls, root, language):
+        return root / cls.dataset_dir / cls.version / cls.supported_languages[language]
+
+    @classmethod
+    def download(cls, root, languages):
+        for language in languages:
+            language_path = cls._get_language_dir(root, language)
+            language_path.mkdir(parents=True, exist_ok=True)
+            try:
+                COMMONVOICE(
+                    root=language_path,
+                    tsv='', url=language, download=True, version=cls.version
+                )
+            except FileNotFoundError:
+                pass
 
 
 if __name__ == '__main__':
