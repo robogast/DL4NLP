@@ -11,11 +11,13 @@ from torchaudio.datasets import COMMONVOICE
 class LanguageDataModule(pl.LightningDataModule):
 
     def __init__(self, batch_size, languages: Iterable[str], num_workers=0, root=Path(), balanced=True):
+        super(LanguageDataModule, self).__init__()
         self.batch_size = batch_size
         self.languages = languages
         self.num_workers = num_workers
         self.root = root
         self.balanced = balanced
+
 
     def setup(self, stage=None):
         self.train_dataset = CommonVoiceDataset(
@@ -38,7 +40,8 @@ class LanguageDataModule(pl.LightningDataModule):
             drop_last=True
         )
 
-    def validation_dataloader(self):
+    def val_dataloader(self):
+        # FIXME: change val dataloader to get val data from train dataset instead of test dataset
         return torch.utils.data.DataLoader(
             self.validation_dataset,
             batch_size=self.batch_size,
@@ -150,7 +153,3 @@ class CommonVoiceDataset(ConcatDataset):
                 pass
 
 
-if __name__ == '__main__':
-    module = LanguageDataModule(languages=('abkhaz','interlingua'), batch_size=2)
-    module.prepare_data()
-    breakpoint()
