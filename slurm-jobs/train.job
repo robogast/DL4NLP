@@ -29,7 +29,7 @@ ROOT_DIR=$( cd "$SCRIPT_DIR"/..; pwd )
 echo "Found root dir $ROOT_DIR"
 
 # Default dataset path
-DATASET_PATH="$ROOT_DIR"/datasets/"$DATASET_NAME".tar
+DATASET_PATH="$ROOT_DIR"/dataset/"$DATASET_NAME".tar
 echo "Assuming Dataset path $DATASET_PATH"
 
 
@@ -52,13 +52,12 @@ echo "Using Indir $INDIR"
 
 DATASET_INDIR="$INDIR"/"$DATASET_NAME"
 echo "- copying dataset"
-cp "$DATASET_PATH" "$INDIR"
+rsync -ah --info=progress2 "$DATASET_PATH" "$INDIR"
 echo "- untarring dataset"
 tar -xf "$DATASET_INDIR".tar -C "$INDIR"
 
 
-
-PYTHON_ARGS = "\
+PYTHON_ARGS="\
 --dataset-path $INDIR \
 --languages $LANGUAGES \
 "
@@ -66,5 +65,5 @@ PYTHON_ARGS = "\
 echo "- starting run with args"
 echo $PYTHON_ARGS
 
-# python "$SCRIPTPATH" "$DATASET_INDIR"
+python "$SCRIPTPATH" $PYTHON_ARGS
 
