@@ -1,19 +1,23 @@
 import torch
 import pytorch_lightning as pl
 
-class LanguageModel(pl.LightningModule):
+from models.wavenet import WaveNetModel
+
+class LanguageModel(WaveNetModel):
     def __init__(self):
         super(LanguageModel, self).__init__()
 
-    def forward(self, data):
-        assert False, "TODO: model forward"
+    # def forward(self, data):
+        
+    #     assert False, "TODO: model forward"
 
     def training_step(self, batch, batch_idx):
         out = self.shared_step(batch, batch_idx)
-        assert False, "TODO: training step"
+        print(out)
+        # assert False, "TODO: training step"
         # loss = ...
-        # return pl.TrainResult(minimize=loss)
-        return 
+        return pl.TrainResult(minimize=loss)
+        # return 
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)

@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import ConcatDataset, Subset
 from torchaudio.datasets import COMMONVOICE
-
+import numpy as np
 
 class LanguageDataModule(pl.LightningDataModule):
 
@@ -106,6 +106,9 @@ class CommonVoiceDataset(ConcatDataset):
         self.root = root
         self.languages = languages
 
+        self._item_length = 100000
+        self.classes = 256
+
         for language in languages:
             assert language in self.supported_languages, (
                 f"Got {language}, options are {self.supported_languages.keys()}"
@@ -117,24 +120,28 @@ class CommonVoiceDataset(ConcatDataset):
             tsv=split, url=language, download=False, version=self.version)
             for language in languages
         ]
-
         if balanced:
             min_length = min(len(dataset) for dataset in datasets)
             datasets = [
                 Subset(dataset, list(range(min_length)))
                 for dataset in datasets
             ]
-
+        print("balanced the datasets")
         super(CommonVoiceDataset, self).__init__(datasets)
 
 
     def __getitem__(self, idx):
-        data = super(CommonVoiceDataset, self).__getitem__(idx)
+
+        data = super(CommonVoiceDataset, self).__getitem__(idx)[0]
+        quantized = torch.from_numpy(quantize_data(data.squeeze(0), self.classes))
+
+        one_hot = torch.FloatTensor(self.classes, self._item_length).zero_()
+        one_hot.scatter_(0, quantized[:self._item_length].unsqueeze(0), 1.)
+
         target = bisect_right(self.cumulative_sizes, idx)
-
-        return data, target
-
-
+    
+        return one_hot, target
+        
     @classmethod
     def _get_language_dir(cls, root, language):
         return root / cls.dataset_dir / cls.version / cls.supported_languages[language]
@@ -143,13 +150,28 @@ class CommonVoiceDataset(ConcatDataset):
     def download(cls, root, languages):
         for language in languages:
             language_path = cls._get_language_dir(root, language)
-            language_path.mkdir(parents=True, exist_ok=True)
-            try:
-                COMMONVOICE(
-                    root=language_path,
-                    tsv='', url=language, download=True, version=cls.version
-                )
-            except FileNotFoundError:
-                pass
+            if not language_path.exists():
+                language_path.mkdir(parents=True, exist_ok=True)
+                try:
+                    print('downloaden')
+                    COMMONVOICE(
+                        root=language_path,
+                        tsv='', url=language, download=True, version=cls.version
+                    )
+                except FileNotFoundError:
+                    pass
+
+def quantize_data(data, classes):
+    mu_x = mu_law_encoding(data, classes)
+    bins = np.linspace(-1, 1, classes)
+    quantized = np.digitize(mu_x, bins) - 1
+    return quantized
+
+def mu_law_encoding(data, mu):
+    mu_x = np.sign(data) * np.log(1 + mu * np.abs(data)) / np.log(mu + 1)
+    return mu_x
 
 
+def mu_law_expansion(data, mu):
+    s = np.sign(data) * (np.exp(np.abs(data) * np.log(mu + 1)) - 1) / mu
+    return s
