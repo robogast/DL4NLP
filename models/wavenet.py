@@ -3,6 +3,8 @@ import os.path
 import time
 from .wavenet_modules import *
 
+import torch.nn as nn
+
 import pytorch_lightning as pl
 
 class WaveNetModel(pl.LightningModule):
@@ -26,14 +28,15 @@ class WaveNetModel(pl.LightningModule):
         L should be the length of the receptive field
     """
     def __init__(self,
-                 layers=10,
-                 blocks=4,
+                 layers=10,#10
+                 blocks=4,#4
                  dilation_channels=32,
                  residual_channels=32,
-                 skip_channels=256,
-                 end_channels=256,
+                 skip_channels=256, #256 
+                 end_channels=256, #256
                  classes=256,
-                 output_length=32,
+                 outclasses=2,
+                 output_length=1,
                  kernel_size=2,
                  dtype=torch.FloatTensor,
                  bias=False):
@@ -114,7 +117,7 @@ class WaveNetModel(pl.LightningModule):
                                   bias=True)
 
         self.end_conv_2 = nn.Conv1d(in_channels=end_channels,
-                                    out_channels=classes,
+                                    out_channels=outclasses,
                                     kernel_size=1,
                                     bias=True)
 
@@ -132,7 +135,7 @@ class WaveNetModel(pl.LightningModule):
 
             #            |----------------------------------------|     *residual*
             #            |                                        |
-            #            |    |-- conv -- tanh --|                |
+            #            |    |-- conv --.Tanh --|                |
             # -> dilate -|----|                  * ----|-- 1x1 -- + -->	*input*
             #                 |-- conv -- sigm --|     |
             #                                         1x1
@@ -145,9 +148,9 @@ class WaveNetModel(pl.LightningModule):
 
             # dilated convolution
             filter = self.filter_convs[i](residual)
-            filter = F.tanh(filter)
+            filter = nn.Tanh()(filter)
             gate = self.gate_convs[i](residual)
-            gate = F.sigmoid(gate)
+            gate = nn.Sigmoid()(gate)
             x = filter * gate
 
             # parametrized skip connection
@@ -164,8 +167,8 @@ class WaveNetModel(pl.LightningModule):
             x = self.residual_convs[i](x)
             x = x + residual[:, :, (self.kernel_size - 1):]
 
-        x = F.relu(skip)
-        x = F.relu(self.end_conv_1(x))
+        x = nn.ReLU()(skip)
+        x = nn.ReLU()(self.end_conv_1(x))
         x = self.end_conv_2(x)
 
         return x

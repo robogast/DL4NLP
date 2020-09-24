@@ -4,47 +4,10 @@ import pytorch_lightning as pl
 
 from models.wavenet import WaveNetModel
 
-class LanguageModel(pl.LightningModule):
+class LanguageModel(WaveNetModel):
     def __init__(self):
         super(LanguageModel, self).__init__()
-        bias = True
-        self.convs = nn.Sequential(
-            nn.Conv1d(in_channels=1,
-                out_channels=5,
-                kernel_size=50,
-                stride=10,
-                bias=bias),
-            nn.MaxPool1d(4),
-            nn.BatchNorm1d(5),
-            nn.ReLU(),
-            nn.Conv1d(in_channels=5,
-                out_channels=10,
-                kernel_size=25,
-                bias=bias,
-                ),
-            nn.ReLU(),
-            nn.BatchNorm1d(10),
-            nn.MaxPool1d(4),
-            nn.Conv1d(in_channels=10,
-                out_channels=1,
-                kernel_size=9,
-                bias=bias
-                ),
-            nn.ReLU()
-        )
-
-        self.cf = nn.Sequential(
-            nn.Linear(610, 2)
-        )
-
         self.lossf = nn.CrossEntropyLoss()
-
-    def forward(self, data):
-        convs = self.convs(data).squeeze(1)
-        # print(convs.shape)
-        out = self.cf(convs)
-        # print(out.shape)
-        return out
 
     def training_step(self, batch, batch_idx):
         out = self.shared_step(batch, batch_idx)
@@ -53,6 +16,7 @@ class LanguageModel(pl.LightningModule):
         _, label = batch
         # print(label)
         loss = self.lossf(out, label)
+        print(out.shape, label.shape)
         return pl.TrainResult(minimize=loss)
         # return 
 
@@ -69,4 +33,5 @@ class LanguageModel(pl.LightningModule):
 
     def shared_step(self, batch, batch_idx):
         x, _ = batch
-        return self(x)
+        out = self(x)
+        return out

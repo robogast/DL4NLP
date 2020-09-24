@@ -126,22 +126,19 @@ class CommonVoiceDataset(ConcatDataset):
                 Subset(dataset, list(range(min_length)))
                 for dataset in datasets
             ]
-        print("balanced the datasets")
         super(CommonVoiceDataset, self).__init__(datasets)
 
 
     def __getitem__(self, idx):
-
         data = super(CommonVoiceDataset, self).__getitem__(idx)[0]
-        
-        data_length = min(data.size(1), self._item_length)
+        quantized = torch.from_numpy(quantize_data(data.squeeze(0), self.classes))
 
-        data_capped = torch.FloatTensor(1, self._item_length).zero_()
-        data_capped[:, :data_length] = data[:, :data_length]
+        one_hot = torch.FloatTensor(self.classes, self._item_length).zero_()
+        one_hot.scatter_(0, quantized[:self._item_length].unsqueeze(0), 1.)
 
         target = bisect_right(self.cumulative_sizes, idx)
-    
-        return data_capped, target
+
+        return one_hot, target
         
     @classmethod
     def _get_language_dir(cls, root, language):
@@ -162,3 +159,18 @@ class CommonVoiceDataset(ConcatDataset):
                 except FileNotFoundError:
                     pass
 
+
+def quantize_data(data, classes):
+    mu_x = mu_law_encoding(data, classes)
+    bins = np.linspace(-1, 1, classes)
+    quantized = np.digitize(mu_x, bins) - 1
+    return quantized
+
+def mu_law_encoding(data, mu):
+    mu_x = np.sign(data) * np.log(1 + mu * np.abs(data)) / np.log(mu + 1)
+    return mu_x
+
+
+def mu_law_expansion(data, mu):
+    s = np.sign(data) * (np.exp(np.abs(data) * np.log(mu + 1)) - 1) / mu
+    return s
