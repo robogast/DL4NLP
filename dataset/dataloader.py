@@ -133,14 +133,15 @@ class CommonVoiceDataset(ConcatDataset):
     def __getitem__(self, idx):
 
         data = super(CommonVoiceDataset, self).__getitem__(idx)[0]
-        quantized = torch.from_numpy(quantize_data(data.squeeze(0), self.classes))
+        
+        data_length = min(data.size(1), self._item_length)
 
-        one_hot = torch.FloatTensor(self.classes, self._item_length).zero_()
-        one_hot.scatter_(0, quantized[:self._item_length].unsqueeze(0), 1.)
+        data_capped = torch.FloatTensor(1, self._item_length).zero_()
+        data_capped[:data_length] = data[:, :data_length]
 
         target = bisect_right(self.cumulative_sizes, idx)
     
-        return one_hot, target
+        return data_capped, target
         
     @classmethod
     def _get_language_dir(cls, root, language):

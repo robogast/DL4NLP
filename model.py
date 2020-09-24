@@ -9,7 +9,7 @@ class LanguageModel(pl.LightningModule):
         super(LanguageModel, self).__init__()
         bias = True
         self.convs = nn.Sequential(
-            nn.Conv1d(in_channels=256,
+            nn.Conv1d(in_channels=1,
                 out_channels=500,
                 kernel_size=3,
                 bias=bias,
