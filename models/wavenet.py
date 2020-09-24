@@ -28,12 +28,12 @@ class WaveNetModel(pl.LightningModule):
         L should be the length of the receptive field
     """
     def __init__(self,
-                 layers=10,#10
-                 blocks=4,#4
+                 layers=2,#10
+                 blocks=1,#4
                  dilation_channels=32,
                  residual_channels=32,
-                 skip_channels=256, #256 
-                 end_channels=256, #256
+                 skip_channels=32, #256 
+                 end_channels=32, #256
                  classes=256,
                  outclasses=2,
                  output_length=1,
@@ -187,7 +187,6 @@ class WaveNetModel(pl.LightningModule):
         return x
 
     def forward(self, input):
-        print(input.shape)
         x = self.wavenet(input,
                          dilation_func=self.wavenet_dilate)
 

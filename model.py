@@ -11,14 +11,9 @@ class LanguageModel(WaveNetModel):
 
     def training_step(self, batch, batch_idx):
         out = self.shared_step(batch, batch_idx)
-        # print(out)
-        # assert False, "TODO: training step"
         _, label = batch
-        # print(label)
         loss = self.lossf(out, label)
-        print(out.shape, label.shape)
         return pl.TrainResult(minimize=loss)
-        # return 
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)

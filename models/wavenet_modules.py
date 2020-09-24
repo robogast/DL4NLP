@@ -76,52 +76,11 @@ class DilatedQueue:
         self.in_pos = 0
         self.out_pos = 0
 
-
-class ConstantPad1d(Function):
-    @staticmethod
-    def forward(ctx, input, target_size, dimension=0, value=0, pad_start=False):
-        num_pad = target_size - input.size(dimension)
-        assert num_pad >= 0, 'target size has to be greater than input size'
-
-        input_size = input.size()
-
-        ctx.save_for_backward(dimension, num_pad, input_size, pad_start)
-
-        size = list(input.size())
-        size[dimension] = target_size
-        output = input.new(*tuple(size)).fill_(value)
-        c_output = output
-
-        # crop output
-        if pad_start:
-            c_output = c_output.narrow(dimension, num_pad, c_output.size(dimension) - num_pad)
-        else:
-            c_output = c_output.narrow(dimension, 0, c_output.size(dimension) - num_pad)
-
-        c_output.copy_(input)
-        return output
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        
-        dimension, num_pad, input_size, pad_start = ctx.saved_tensors()
-
-        grad_input = grad_output.new(*input_size).zero_()
-        cg_output = grad_output
-
-        # crop grad_output
-        if pad_start:
-            cg_output = cg_output.narrow(dimension, num_pad, cg_output.size(dimension) - num_pad)
-        else:
-            cg_output = cg_output.narrow(dimension, 0, cg_output.size(dimension) - num_pad)
-
-        grad_input.copy_(cg_output)
-        return grad_input
-
-
 def constant_pad_1d(input,
                     target_size,
                     dimension=0,
                     value=0,
                     pad_start=False):
-    return ConstantPad1d.apply(input, target_size, dimension, value, pad_start)
+    pads = [0] * (input.ndim * 2)
+    pads[2 * dimension + (1 if pad_start else 0)] = target_size - input.shape[dimension]
+    return torch.nn.functional.pad(input, pads[::-1], mode='constant', value=value)
