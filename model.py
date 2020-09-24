@@ -10,6 +10,7 @@ class LanguageModel(pl.LightningModule):
         bias = True
         latent_size = 200
         n_classes = 2
+        self.training = True
         self.inference_layers = nn.Sequential(
             nn.Conv1d(in_channels=1,
                 out_channels=500,
