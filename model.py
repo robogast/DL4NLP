@@ -11,42 +11,45 @@ class LanguageModel(pl.LightningModule):
         self.convs = nn.Sequential(
             nn.Conv1d(in_channels=1,
                 out_channels=5,
-                kernel_size=3,
-                bias=bias,
-                padding=2),
+                kernel_size=50,
+                stride=10,
+                bias=bias),
+            nn.MaxPool1d(4),
             nn.ReLU(),
             nn.Conv1d(in_channels=5,
                 out_channels=10,
-                kernel_size=5,
+                kernel_size=25,
                 bias=bias,
-                padding=3),
+                ),
             nn.ReLU(),
+            nn.MaxPool1d(4),
             nn.Conv1d(in_channels=10,
                 out_channels=1,
                 kernel_size=9,
-                bias=bias,
-                padding=2)
+                bias=bias
+                ),
+            nn.ReLU()
         )
 
         self.cf = nn.Sequential(
-            nn.Linear(100000, 2)
+            nn.Linear(610, 2)
         )
 
         self.lossf = nn.CrossEntropyLoss()
 
     def forward(self, data):
         convs = self.convs(data).squeeze(1)
-        print(convs.shape)
+        # print(convs.shape)
         out = self.cf(convs)
-        print(out.shape)
+        # print(out.shape)
         return out
 
     def training_step(self, batch, batch_idx):
         out = self.shared_step(batch, batch_idx)
-        print(out)
+        # print(out)
         # assert False, "TODO: training step"
         _, label = batch
-        print(label)
+        # print(label)
         loss = self.lossf(out, label)
         return pl.TrainResult(minimize=loss)
         # return 
@@ -59,8 +62,6 @@ class LanguageModel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         out = self.shared_step(batch, batch_idx)
         _, label = batch
-        print(label)
-        print(out.shape, label.shape)
         loss = self.lossf(out, label)
         return pl.EvalResult(loss)
 
