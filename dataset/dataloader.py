@@ -137,7 +137,7 @@ class CommonVoiceDataset(ConcatDataset):
         data_length = min(data.size(1), self._item_length)
 
         data_capped = torch.FloatTensor(1, self._item_length).zero_()
-        data_capped[:data_length] = data[:, :data_length]
+        data_capped[:, :data_length] = data[:, :data_length]
 
         target = bisect_right(self.cumulative_sizes, idx)
     

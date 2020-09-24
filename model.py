@@ -10,18 +10,18 @@ class LanguageModel(pl.LightningModule):
         bias = True
         self.convs = nn.Sequential(
             nn.Conv1d(in_channels=1,
-                out_channels=500,
+                out_channels=5,
                 kernel_size=3,
                 bias=bias,
                 padding=2),
             nn.ReLU(),
-            nn.Conv1d(in_channels=500,
-                out_channels=500,
+            nn.Conv1d(in_channels=5,
+                out_channels=10,
                 kernel_size=5,
                 bias=bias,
                 padding=3),
             nn.ReLU(),
-            nn.Conv1d(in_channels=500,
+            nn.Conv1d(in_channels=10,
                 out_channels=1,
                 kernel_size=9,
                 bias=bias,
@@ -35,8 +35,10 @@ class LanguageModel(pl.LightningModule):
         self.lossf = nn.CrossEntropyLoss()
 
     def forward(self, data):
-        convs = self.convs(data).squeeze(0)
+        convs = self.convs(data).squeeze(1)
+        print(convs.shape)
         out = self.cf(convs)
+        print(out.shape)
         return out
 
     def training_step(self, batch, batch_idx):
