@@ -162,17 +162,3 @@ class CommonVoiceDataset(ConcatDataset):
                 except FileNotFoundError:
                     pass
 
-def quantize_data(data, classes):
-    mu_x = mu_law_encoding(data, classes)
-    bins = np.linspace(-1, 1, classes)
-    quantized = np.digitize(mu_x, bins) - 1
-    return quantized
-
-def mu_law_encoding(data, mu):
-    mu_x = np.sign(data) * np.log(1 + mu * np.abs(data)) / np.log(mu + 1)
-    return mu_x
-
-
-def mu_law_expansion(data, mu):
-    s = np.sign(data) * (np.exp(np.abs(data) * np.log(mu + 1)) - 1) / mu
-    return s
