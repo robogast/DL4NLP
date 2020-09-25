@@ -137,3 +137,5 @@ dmypy.json
 # data
 *.mp3
 *.tsv
+
+/test_folder/*
