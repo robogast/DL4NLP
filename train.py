@@ -29,11 +29,11 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser = pl.Trainer.add_argparse_args(parser)
-    parser.add_argument("--dataset-path", type=Path)
-    parser.add_argument("--batch-size", type=int, default=3)
+    parser.add_argument("--dataset-path", type=Path, default=Path())
+    parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--languages", nargs="+", help='Languages to use for model training',
                         required=True, choices=tuple(CommonVoiceDataset.supported_languages.keys()))
-    parser.add_argument("--num-workers", help='Num workers to use (per gpu!)', default=6)
+    parser.add_argument("--num-workers", help='Num workers to use (per gpu!)', type=int, default=6)
     args = parser.parse_args()
 
     main(args)
