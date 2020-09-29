@@ -189,13 +189,9 @@ class WaveNetModel(pl.LightningModule):
     def forward(self, input):
         x = self.wavenet(input,
                          dilation_func=self.wavenet_dilate)
-
-        # reshape output
-        [n, c, l] = x.size()
-        l = self.output_length
-        x = x[:, :, -l:]
-        x = x.transpose(1, 2).contiguous()
-        x = x.view(n * l, c)
+        # print(x.shape)
+        x = x.mean(dim=2)
+        # print(x.shape)
         return x
 
     def generate(self,
