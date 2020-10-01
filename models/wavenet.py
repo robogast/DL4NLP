@@ -50,6 +50,7 @@ class WaveNetModel(pl.LightningModule):
         self.skip_channels = skip_channels
         self.classes = classes
         self.kernel_size = kernel_size
+        self.outclasses = outclasses
         # self.dtype = dtype
 
         # build model

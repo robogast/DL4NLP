@@ -1,0 +1,66 @@
+#!/bin/bash
+
+#SBATCH -N 1
+#SBATCH -t 12:00:00
+#SBATCH -p gpu_titanrtx_shared_course
+
+
+DATASET_NAME="CommonVoice"
+CONDA_ENV="dl4nlp"
+
+LANGUAGES="\
+dutch \
+estonian \
+"
+
+if [ ! -z $SLURM_JOB_ID ];  then
+    # check the original location through scontrol and $SLURM_JOB_ID
+    SCRIPT_DIR=$( dirname $(scontrol show job $SLURM_JOBID | awk -F= '/Command=/{print $2}'))
+else
+    # otherwise: started with bash. Get the real location.
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+fi
+
+ROOT_DIR=$( cd "$SCRIPT_DIR"/..; pwd )
+
+echo "Found root dir $ROOT_DIR"
+
+# Default dataset path
+DATASET_PATH="$ROOT_DIR"/dataset/"$DATASET_NAME".tar
+echo "Assuming Dataset path $DATASET_PATH"
+
+
+echo "- setting up env"
+# Conda env
+module load 2019
+module load Miniconda3
+
+# Cuda/cuDNN
+module load cuDNN/7.6.5.32-gcccuda-2019b
+module load NCCL/2.6.4-gcccuda-2019b
+
+echo "Activating conda env $CONDA_ENV"
+source activate "$CONDA_ENV"
+
+SCRIPTPATH="$ROOT_DIR/train.py"
+
+INDIR="$TMPDIR"
+echo "Using Indir $INDIR"
+
+DATASET_INDIR="$INDIR"/"$DATASET_NAME"
+echo "- copying dataset"
+rsync -ah --info=progress2 "$DATASET_PATH" "$INDIR"
+echo "- untarring dataset"
+tar -xf "$DATASET_INDIR".tar -C "$INDIR"
+
+
+PYTHON_ARGS="\
+--dataset-path $INDIR \
+--languages $LANGUAGES \
+"
+
+echo "- starting run with args"
+echo $PYTHON_ARGS
+
+python "$SCRIPTPATH" $PYTHON_ARGS
+

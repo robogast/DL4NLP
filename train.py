@@ -10,14 +10,23 @@ from dataset.dataloader import LanguageDataModule, CommonVoiceDataset
 def main(args):
     datamodule = LanguageDataModule(root=args.dataset_path, languages=args.languages, batch_size=args.batch_size, num_workers=args.num_workers)
 
-    model = LanguageModel()
+    model = LanguageModel(
+                # layers=1,#10
+                #  blocks=1,#4
+                #  skip_channels=32, #256 
+                #  end_channels=32, #256
+                # uncomment for fast debug network
+    )
 
     checkpoint_callback = pl.callbacks.model_checkpoint.ModelCheckpoint(save_last=True, save_top_k=3)
 
     trainer = pl.Trainer(
+
+        # comment to run on cpu for local testing
         gpus=1,
         auto_select_gpus=True,
         distributed_backend='ddp',
+        ## -------
 
         terminate_on_nan=True,
 
