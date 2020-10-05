@@ -24,7 +24,7 @@ class LanguageDataModule(pl.LightningDataModule):
             self.root, self.languages, self.balanced, split='train'
         )
         self.validation_dataset = CommonVoiceDataset(
-            self.root, self.languages, self.balanced, split='test'
+            self.root, self.languages, self.balanced, split='validated'
         )
 
     def prepare_data(self):
@@ -102,12 +102,12 @@ class CommonVoiceDataset(ConcatDataset):
     def __init__(self, root: Path, languages: Iterable[str], balanced=True, split='train'):
         assert split in ('train', 'test', 'validated')
         split += '.tsv'
+        self.split = split
 
         self.root = root
         self.languages = languages
 
         self._item_length = 100000
-        self.classes = 256
 
         for language in languages:
             assert language in self.supported_languages, (
@@ -131,19 +131,11 @@ class CommonVoiceDataset(ConcatDataset):
 
     def __getitem__(self, idx):
         data = super(CommonVoiceDataset, self).__getitem__(idx)[0]
-        
+
         _, length = data.size()
 
         pad_length = max(self._item_length - length, 0)
         data = torch.nn.functional.pad(data, (0, pad_length))
-        # breakpoint()
-        # quantized = torch.from_numpy(quantize_data(data.squeeze(0), self.classes))
-
-
-        # one_hot = torch.FloatTensor(self.classes, self._item_length).zero_()
-
-        # one_hot.scatter_(0, quantized[:self._item_length].unsqueeze(0), 1.)
-        # breakpoint()
 
         target = bisect_right(self.cumulative_sizes, idx)
 

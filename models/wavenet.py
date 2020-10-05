@@ -33,7 +33,7 @@ class WaveNetModel(pl.LightningModule):
                  blocks=4,#4
                  dilation_channels=32,
                  residual_channels=32,
-                 skip_channels=256, #256 
+                 skip_channels=256, #256
                  end_channels=256, #256
                  classes=1,
                  outclasses=2,
@@ -133,6 +133,7 @@ class WaveNetModel(pl.LightningModule):
 
         # WaveNet layers
         for i in range(self.blocks * self.layers):
+            x = torch.nn.functional.dropout(x, p=0.2, training=True)
 
             #            |----------------------------------------|     *residual*
             #            |                                        |

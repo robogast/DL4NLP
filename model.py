@@ -15,6 +15,21 @@ class LanguageModel(WaveNetModel):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
+    def calculate_var(self, batch, batch_idx):
+        x, _ = batch
+        n_mc = 25
+        with torch.no_grad():
+            sum_x, sum_x_squared = 0, 0
+            for _ in range(n_mc):
+                out = self(x)
+                sum_x += out
+                sum_x_squared += out ** 2
+
+            var = (1 / n_mc) * (sum_x_squared - (sum_x ** 2) / n_mc)
+
+        return var
+
+
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx, mode='train')
 
@@ -31,13 +46,14 @@ class LanguageModel(WaveNetModel):
         loss = nn.functional.cross_entropy(out, target)
 
         with torch.no_grad():
-            predictions = (out.max(dim=1)[1] == target)
-            acc = predictions.sum() / float(batch_size * length)
+            acc = (out.max(dim=1)[1] == target).sum() / float(batch_size * length)
 
         if mode == 'train':
             result = pl.TrainResult(minimize=loss)
         else:
             result = pl.EvalResult(checkpoint_on=loss)
+            unreduced_var = self.calculate_var(batch, batch_idx)
+
 
         result.log(f'{mode}_loss', loss)
         result.log(f'{mode}_acc', acc)
