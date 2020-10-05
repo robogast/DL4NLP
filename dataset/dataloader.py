@@ -2,6 +2,8 @@ from bisect import bisect_right
 from pathlib import Path
 from typing import Iterable
 import os
+import math
+
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import ConcatDataset, Subset
@@ -107,7 +109,7 @@ class CommonVoiceDataset(ConcatDataset):
         self.root = root
         self.languages = languages
 
-        self._item_length = 100000
+        self._item_length = 200000
 
         for language in languages:
             assert language in self.supported_languages, (
@@ -137,10 +139,14 @@ class CommonVoiceDataset(ConcatDataset):
         pad_length = max(self._item_length - length, 0)
         data = torch.nn.functional.pad(data, (0, pad_length))
 
+        res_length = max(length, self._item_length) - self._item_length
+
+        crop_left, crop_right = res_length // 2, math.ceil(res_length / 2)
+
         target = bisect_right(self.cumulative_sizes, idx)
 
-        return data[:, :self._item_length], target
-        
+        return data[:, crop_left:-crop_right] if crop_right > 0 else data, target
+
     @classmethod
     def _get_language_dir(cls, root, language):
         return root / cls.dataset_dir / cls.version / cls.supported_languages[language]
@@ -170,7 +176,6 @@ def quantize_data(data, classes):
 def mu_law_encoding(data, mu):
     mu_x = np.sign(data) * np.log(1 + mu * np.abs(data)) / np.log(mu + 1)
     return mu_x
-
 
 def mu_law_expansion(data, mu):
     s = np.sign(data) * (np.exp(np.abs(data) * np.log(mu + 1)) - 1) / mu
