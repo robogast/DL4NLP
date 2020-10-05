@@ -54,11 +54,11 @@ if [ -z $INDIR ]; then
 fi
 echo "Using Indir $INDIR"
 
-# DATASET_INDIR="$INDIR"/"$DATASET_NAME"
-# echo "- copying dataset"
-# rsync -ah --info=progress2 "$DATASET_PATH" "$INDIR"
-# echo "- untarring dataset"
-# tar -xkf "$DATASET_INDIR".tar -C "$INDIR"
+DATASET_INDIR="$INDIR"/"CommonVoice"
+echo "- copying dataset"
+rsync -ah --info=progress2 "$DATASET_PATH" "$INDIR"
+echo "- untarring dataset"
+tar -xkf "$DATASET_INDIR".tar -C "$INDIR"
 
 if [ $PARTITION == "gpu_titanrtx_shared_course" ]; then
     N_GPUS="1"

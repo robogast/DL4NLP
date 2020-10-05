@@ -17,7 +17,7 @@ class LanguageModel(WaveNetModel):
 
     def calculate_var(self, batch, batch_idx):
         x, _ = batch
-        n_mc = 25
+        n_mc = 5
         with torch.no_grad():
             sum_x, sum_x_squared = 0, 0
             for _ in range(n_mc):
@@ -28,7 +28,6 @@ class LanguageModel(WaveNetModel):
             var = (1 / n_mc) * (sum_x_squared - (sum_x ** 2) / n_mc)
 
         return var
-
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx, mode='train')
@@ -52,8 +51,9 @@ class LanguageModel(WaveNetModel):
             result = pl.TrainResult(minimize=loss)
         else:
             result = pl.EvalResult(checkpoint_on=loss)
-            unreduced_var = self.calculate_var(batch, batch_idx)
+            # var = self.calculate_var(batch, batch_idx).mean(dim=2)
 
+            result.log(f'{mode}_var', loss)
 
         result.log(f'{mode}_loss', loss)
         result.log(f'{mode}_acc', acc)

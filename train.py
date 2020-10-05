@@ -18,8 +18,8 @@ def main(args):
     model = LanguageModel(
                 # layers=1,#10
                 #  blocks=1,#4
-                #  skip_channels=32, #256 
-                #  end_channels=32, #256
+                 skip_channels=32, #256 
+                 end_channels=32, #256
                 # uncomment for fast debug network
     )
 
