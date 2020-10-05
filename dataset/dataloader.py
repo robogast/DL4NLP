@@ -6,28 +6,33 @@ import math
 
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import ConcatDataset, Subset
+from torch.utils.data import ConcatDataset, Subset, random_split
 from torchaudio.datasets import COMMONVOICE
 import numpy as np
 
 class LanguageDataModule(pl.LightningDataModule):
 
-    def __init__(self, batch_size, languages: Iterable[str], num_workers=0, root=Path(), balanced=True):
+    def __init__(self, batch_size, languages: Iterable[str], train_frac=0.95, num_workers=0, root=Path(), balanced=True):
         super(LanguageDataModule, self).__init__()
         self.batch_size = batch_size
         self.languages = languages
         self.num_workers = num_workers
         self.root = root
         self.balanced = balanced
+        self.train_frac = train_frac
 
 
     def setup(self, stage=None):
-        self.train_dataset = CommonVoiceDataset(
-            self.root, self.languages, self.balanced, split='train'
-        )
-        self.validation_dataset = CommonVoiceDataset(
+        dataset = CommonVoiceDataset(
             self.root, self.languages, self.balanced, split='validated'
         )
+        train_len = int(len(dataset) * self.train_frac)
+        val_len = len(dataset) - train_len
+
+        train_split, val_split = random_split(dataset, [train_len, val_len])
+
+        self.train_dataset = train_split
+        self.validation_dataset = val_split
 
     def prepare_data(self):
         CommonVoiceDataset.download(self.root, self.languages)
@@ -140,12 +145,12 @@ class CommonVoiceDataset(ConcatDataset):
         data = torch.nn.functional.pad(data, (0, pad_length))
 
         res_length = max(length, self._item_length) - self._item_length
-
         crop_left, crop_right = res_length // 2, math.ceil(res_length / 2)
 
         target = bisect_right(self.cumulative_sizes, idx)
+        cropped_data = data[:, crop_left:-crop_right] if crop_right > 0 else data
 
-        return data[:, crop_left:-crop_right] if crop_right > 0 else data, target
+        return cropped_data, target
 
     @classmethod
     def _get_language_dir(cls, root, language):
