@@ -8,7 +8,12 @@ from model import LanguageModel
 from dataset.dataloader import LanguageDataModule, CommonVoiceDataset
 
 def main(args):
-    datamodule = LanguageDataModule(root=args.dataset_path, languages=args.languages, batch_size=args.batch_size, num_workers=args.num_workers)
+    datamodule = LanguageDataModule(
+        root=args.dataset_path,
+        languages=args.languages,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers
+    )
 
     model = LanguageModel(
                 # layers=1,#10
@@ -18,20 +23,23 @@ def main(args):
                 # uncomment for fast debug network
     )
 
+
     checkpoint_callback = pl.callbacks.model_checkpoint.ModelCheckpoint(save_last=True, save_top_k=3)
 
     trainer = pl.Trainer(
 
         # comment to run on cpu for local testing
-        gpus=1,
+        gpus=args.gpus,
         auto_select_gpus=True,
-        distributed_backend='ddp',
+        # distributed_backend='ddp',
+        benchmark=True,
         ## -------
 
         terminate_on_nan=True,
 
         checkpoint_callback=checkpoint_callback,
     )
+
     trainer.fit(model, datamodule)
 
 

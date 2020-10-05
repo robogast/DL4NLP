@@ -11,35 +11,35 @@ class LanguageModel(WaveNetModel):
         self.lossf = nn.CrossEntropyLoss()
         self.metric = Accuracy(self.outclasses)
 
-    def training_step(self, batch, batch_idx):
-        out = self.shared_step(batch, batch_idx)
-        _, label = batch
-        loss = self.lossf(out, label)
-
-        acc = self.metric(out.detach().max(1)[1], label)
-        
-        train_result = pl.TrainResult(minimize=loss)
-        train_result.log('train_loss', loss)
-        train_result.log('train_acc', acc)
-        return train_result
-
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
+    def training_step(self, batch, batch_idx):
+        return self.shared_step(batch, batch_idx, mode='train')
 
     def validation_step(self, batch, batch_idx):
-        out = self.shared_step(batch, batch_idx)
-        _, label = batch
-        loss = self.lossf(out, label)
-        acc = self.metric(out.max(1)[1], label)
+        return self.shared_step(batch, batch_idx, mode='validation')
 
-        validation_result = pl.EvalResult(loss)
-        validation_result.log('validation_loss', loss)
-        validation_result.log('validation_acc', acc)
-        return validation_result
-
-    def shared_step(self, batch, batch_idx):
-        x, _ = batch
+    def shared_step(self, batch, batch_idx, mode='train'):
+        x, label = batch
         out = self(x)
-        return out
+
+        batch_size, n_class, length = out.size()
+
+        target = (torch.ones((batch_size,)).type_as(label) * label)[:,None].expand(-1, length)
+        loss = nn.functional.cross_entropy(out, target)
+
+        with torch.no_grad():
+            predictions = (out.max(dim=1)[1] == target)
+            acc = predictions.sum() / float(batch_size * length)
+
+        if mode == 'train':
+            result = pl.TrainResult(minimize=loss)
+        else:
+            result = pl.EvalResult(checkpoint_on=loss)
+
+        result.log(f'{mode}_loss', loss)
+        result.log(f'{mode}_acc', acc)
+
+        return result

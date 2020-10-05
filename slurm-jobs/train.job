@@ -3,7 +3,7 @@
 #SBATCH -N 1
 #SBATCH -t 12:00:00
 #SBATCH -p gpu_titanrtx_shared_course
-
+PARTITION="gpu_titanrtx_shared_course"  # FIXME: I would like to make sbatch use this flag, but #SBATCH commands need to come first
 
 DATASET_NAME="CommonVoice"
 CONDA_ENV="dl4nlp"
@@ -16,16 +16,13 @@ russian \
 italian \
 "
 
-if [ ! -z $SLURM_JOB_ID ];  then
-    # check the original location through scontrol and $SLURM_JOB_ID
-    SCRIPT_DIR=$( dirname $(scontrol show job $SLURM_JOBID | awk -F= '/Command=/{print $2}'))
-else
-    # otherwise: started with bash. Get the real location.
-    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+if [ $SCRIPT_DIR == *"/var/spool/"* ] && [ ! -z $SLURM_JOB_ID ]; then
+    # When using slurm, while running a job script (instead of node salloc)
+    SCRIPT_DIR=$( dirname $( scontrol show job $SLURM_JOB_ID | awk -F= '/Command=/{print $2}'))
 fi
 
 ROOT_DIR=$( cd "$SCRIPT_DIR"/..; pwd )
-
 echo "Found root dir $ROOT_DIR"
 
 # Default dataset path
@@ -48,16 +45,31 @@ source activate "$CONDA_ENV"
 SCRIPTPATH="$ROOT_DIR/train.py"
 
 INDIR="$TMPDIR"
+if [ -z $INDIR ]; then
+    MAYBE_INDIR="/scratch/slurm.$SLURM_JOB_ID.0/scratch"
+    if [ ! -z $SLURM_JOB_ID ] && [ -d $MAYBE_INDIR ]; then
+        INDIR=$MAYBE_INDIR
+    else
+        echo "INDIR is empty!"
+        exit 1
+    fi
+fi
 echo "Using Indir $INDIR"
 
 DATASET_INDIR="$INDIR"/"$DATASET_NAME"
 echo "- copying dataset"
 rsync -ah --info=progress2 "$DATASET_PATH" "$INDIR"
 echo "- untarring dataset"
-tar -xf "$DATASET_INDIR".tar -C "$INDIR"
+tar -xkf "$DATASET_INDIR".tar -C "$INDIR"
 
+if [ $PARTITION == "gpu_titanrtx_shared_course" ]; then
+    N_GPUS="1"
+elif [ $PARTITION == "gpu_titanrtx_course" ]; then
+    N_GPUS="4"
+fi
 
 PYTHON_ARGS="\
+--gpus $N_GPUS \
 --dataset-path $INDIR \
 --languages $LANGUAGES \
 "

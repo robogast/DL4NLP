@@ -3,6 +3,7 @@ import os.path
 import time
 from .wavenet_modules import *
 
+import torch
 import torch.nn as nn
 
 import pytorch_lightning as pl
@@ -34,7 +35,7 @@ class WaveNetModel(pl.LightningModule):
                  residual_channels=32,
                  skip_channels=256, #256 
                  end_channels=256, #256
-                 classes=256,
+                 classes=1,
                  outclasses=2,
                  output_length=1,
                  kernel_size=2,
@@ -127,7 +128,6 @@ class WaveNetModel(pl.LightningModule):
         self.receptive_field = receptive_field
 
     def wavenet(self, input, dilation_func):
-
         x = self.start_conv(input)
         skip = 0
 
@@ -153,7 +153,6 @@ class WaveNetModel(pl.LightningModule):
             gate = self.gate_convs[i](residual)
             gate = nn.Sigmoid()(gate)
             x = filter * gate
-
             # parametrized skip connection
             s = x
             if x.size(2) != 1:
@@ -190,9 +189,9 @@ class WaveNetModel(pl.LightningModule):
     def forward(self, input):
         x = self.wavenet(input,
                          dilation_func=self.wavenet_dilate)
-        # print(x.shape)
-        x = x.mean(dim=2)
-        # print(x.shape)
+
+
+
         return x
 
     def generate(self,
@@ -320,11 +319,11 @@ class WaveNetModel(pl.LightningModule):
         s = sum([np.prod(list(d.size())) for d in par])
         return s
 
-    def cpu(self, type=torch.FloatTensor):
-        self.dtype = type
-        for q in self.dilated_queues:
-            q.dtype = self.dtype
-        super().cpu()
+    # def cpu(self, type=torch.FloatTensor):
+    #     self.dtype = type
+    #     for q in self.dilated_queues:
+    #         q.dtype = self.dtype
+    #     super().cpu()
 
 
 def load_latest_model_from(location, use_cuda=True):
