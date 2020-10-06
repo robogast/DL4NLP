@@ -58,6 +58,9 @@ class LanguageDataModule(pl.LightningDataModule):
             drop_last=True
         )
 
+    def test_dataloader(self):
+        return self.val_dataloader()
+
 class CommonVoiceDataset(ConcatDataset):
     # if COMMONVOICE would put these in the class as I do here,
     # I wouldn't have to copy+paste it...
