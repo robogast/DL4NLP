@@ -59,7 +59,14 @@ class LanguageDataModule(pl.LightningDataModule):
         )
 
     def test_dataloader(self):
-        return self.val_dataloader()
+        return torch.utils.data.DataLoader(
+            self.validation_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+            shuffle=False,
+            drop_last=True
+        )
 
 class CommonVoiceDataset(ConcatDataset):
     # if COMMONVOICE would put these in the class as I do here,
