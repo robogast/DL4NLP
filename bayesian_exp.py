@@ -26,7 +26,19 @@ def main(args):
 
     model.load_from_checkpoint(checkpoint_path="epoch=2.ckpt")
 
+    trainer = pl.Trainer(
 
+        # comment to run on cpu for local testing
+        gpus=args.gpus,
+        auto_select_gpus=True,
+        # distributed_backend='ddp',
+        benchmark=True,
+        ## -------
+
+        terminate_on_nan=True,
+    )
+
+    trainer.test(model, datamodule)
 
 if __name__ == '__main__':
     parser = ArgumentParser()
