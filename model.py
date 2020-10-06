@@ -27,7 +27,7 @@ class LanguageModel(WaveNetModel):
 
             var = (1 / n_mc) * (sum_x_squared - (sum_x ** 2) / n_mc)
 
-        return var
+        return var, sum_x/n_mc
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx, mode='train')
@@ -36,7 +36,30 @@ class LanguageModel(WaveNetModel):
         return self.shared_step(batch, batch_idx, mode='validation')
 
     def test_step(self, batch, batch_idx):
-        var = self.calculate_var(batch, batch_idx)
+        var, x_mean = self.calculate_var(batch, batch_idx)
+
+        batch_size, n_class, length = var.size()
+
+        _, label = batch
+        targets = (torch.ones((batch_size,)).type_as(label) * label)[:,None].expand(-1, length)
+
+        for threshold in [0.1, 0.5, 1]:
+            confident_idx = torch.where((var < threshold).all(dim=1))
+            num_confident = len(confident_idx[0])
+            pred = x_mean.max(dim=1)[1]
+
+            tp_confident = (targets == pred)[confident_idx].sum()
+            
+            acc = tp_confident / float(num_confident)
+
+            result = pl.EvalResult()
+
+            discarded = (batch_size * length) - num_confident
+            result.log(f'test_{threshold}_discarded_prct', discarded / float(batch_size * length))
+            result.log(f'test_{threshold}_discarded', discarded)
+            result.log(f'test_{threshold}_acc', acc)
+
+
 
 
     def shared_step(self, batch, batch_idx, mode='train'):
