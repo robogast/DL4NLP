@@ -1,3 +1,6 @@
+from argparse import ArgumentParser 
+from pathlib import Path
+
 import torch
 import pytorch_lightning as pl
 
@@ -22,6 +25,8 @@ def main(args):
                     )
 
     model.load_from_checkpoint(checkpoint_path="epoch=2.ckpt")
+
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
