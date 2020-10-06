@@ -24,7 +24,9 @@ def main(args):
                         # uncomment for fast debug network
                     )
 
-    model.load_from_checkpoint(checkpoint_path="epoch=2.ckpt")
+    ckpt = torch.load(args.ckpt_path)
+    model.load_state_dict(ckpt['state_dict'])
+
 
     trainer = pl.Trainer(
 
@@ -48,6 +50,7 @@ if __name__ == '__main__':
     parser.add_argument("--languages", nargs="+", help='Languages to use for model training',
                         required=True, choices=tuple(CommonVoiceDataset.supported_languages.keys()))
     parser.add_argument("--num-workers", help='Num workers to use (per gpu!)', type=int, default=6)
+    parser.add_argument("--ckpt_path", default="epoch2.ckpt", type=str)
     args = parser.parse_args()
 
     main(args)
