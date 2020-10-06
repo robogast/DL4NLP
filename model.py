@@ -35,6 +35,10 @@ class LanguageModel(WaveNetModel):
     def validation_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx, mode='validation')
 
+    def test_step(self, batch, batch_idx):
+        var = self.calculate_var(batch, batch_idx)
+
+
     def shared_step(self, batch, batch_idx, mode='train'):
         x, label = batch
         out = self(x)
