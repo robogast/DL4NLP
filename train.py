@@ -16,11 +16,8 @@ def main(args):
     )
 
     model = LanguageModel(
-                # layers=1,#10
-                #  blocks=1,#4
-                 skip_channels=32, #256 
-                 end_channels=32, #256
-                # uncomment for fast debug network
+                 skip_channels=32,
+                 end_channels=32,
     )
 
 
@@ -31,9 +28,8 @@ def main(args):
         # comment to run on cpu for local testing
         gpus=args.gpus,
         auto_select_gpus=True,
-        # distributed_backend='ddp',
+        distributed_backend='ddp',
         benchmark=True,
-        ## -------
 
         terminate_on_nan=True,
 
