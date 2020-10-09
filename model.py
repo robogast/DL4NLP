@@ -68,8 +68,6 @@ class LanguageModel(WaveNetModel):
 
         return result
 
-
-
     def shared_step(self, batch, batch_idx, mode='train'):
         x, label = batch
         out = self(x)
@@ -86,9 +84,6 @@ class LanguageModel(WaveNetModel):
             result = pl.TrainResult(minimize=loss)
         else:
             result = pl.EvalResult(checkpoint_on=loss)
-            # var = self.calculate_var(batch, batch_idx).mean(dim=2)
-
-            result.log(f'{mode}_var', loss)
 
         result.log(f'{mode}_loss', loss)
         result.log(f'{mode}_acc', acc)

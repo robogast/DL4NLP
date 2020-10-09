@@ -10,7 +10,7 @@ CONDA_ENV="dl4nlp"
 
 LANGUAGES="\
 dutch \
-estonian \
+spanish \
 "
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -54,12 +54,6 @@ if [ -z $INDIR ]; then
 fi
 echo "Using Indir $INDIR"
 
-DATASET_INDIR="$INDIR"/"CommonVoice"
-echo "- copying dataset"
-rsync -ah --info=progress2 "$DATASET_PATH" "$INDIR"
-echo "- untarring dataset"
-tar -xkf "$DATASET_INDIR".tar -C "$INDIR"
-
 if [ $PARTITION == "gpu_titanrtx_shared_course" ]; then
     N_GPUS="1"
 elif [ $PARTITION == "gpu_titanrtx_course" ]; then
@@ -70,7 +64,7 @@ PYTHON_ARGS="\
 --gpus $N_GPUS
 --dataset-path $INDIR \
 --languages $LANGUAGES \
---batch-size 6 \
+--batch-size 4 \
 "
 
 echo "- starting run with args"
