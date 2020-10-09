@@ -40,7 +40,13 @@ def main(args):
         terminate_on_nan=True,
     )
     datamodule.setup()
-    trainer.test(model, datamodule.test_dataloader())
+
+    # trainer.fit(model, datamodule)
+
+
+    results = trainer.test(model, datamodule.test_dataloader())
+
+    # print(results)
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -49,7 +55,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--languages", nargs="+", help='Languages to use for model training',
                         required=True, choices=tuple(CommonVoiceDataset.supported_languages.keys()))
-    parser.add_argument("--num-workers", help='Num workers to use (per gpu!)', type=int, default=6)
+    parser.add_argument("--num-workers", help='Num workers to use (per gpu!)', type=int, default=0)
     parser.add_argument("--ckpt_path", default="/home/lgpu0202/DL4NLP/epoch2.ckpt", type=str)
     args = parser.parse_args()
 

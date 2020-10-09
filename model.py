@@ -5,6 +5,8 @@ import pytorch_lightning as pl
 from models.wavenet import WaveNetModel
 from pytorch_lightning.metrics.classification import Accuracy
 
+
+
 class LanguageModel(WaveNetModel):
     def __init__(self, *args, **kwargs):
         super(LanguageModel, self).__init__(*args, **kwargs)
@@ -17,7 +19,7 @@ class LanguageModel(WaveNetModel):
 
     def calculate_var(self, batch, batch_idx):
         x, _ = batch
-        n_mc = 5
+        n_mc = 10
         with torch.no_grad():
             sum_x, sum_x_squared = 0, 0
             for _ in range(n_mc):
@@ -43,7 +45,11 @@ class LanguageModel(WaveNetModel):
         _, label = batch
         targets = (torch.ones((batch_size,)).type_as(label) * label)[:,None].expand(-1, length)
 
-        for threshold in [0.1, 0.5, 1]:
+        loss =  torch.zeros( (1,) )
+
+        result = pl.EvalResult(checkpoint_on=loss)
+
+        for threshold in [0.001, 0.002, 0.005, 0.01]:
             confident_idx = torch.where((var < threshold).all(dim=1))
             num_confident = len(confident_idx[0])
             pred = x_mean.max(dim=1)[1]
@@ -52,13 +58,15 @@ class LanguageModel(WaveNetModel):
             
             acc = tp_confident / float(num_confident)
 
-            result = pl.EvalResult()
+            
+            discarded = torch.Tensor([(batch_size * length) - num_confident])
 
-            discarded = (batch_size * length) - num_confident
+            result.log('val_loss', loss)
             result.log(f'test_{threshold}_discarded_prct', discarded / float(batch_size * length))
             result.log(f'test_{threshold}_discarded', discarded)
             result.log(f'test_{threshold}_acc', acc)
 
+        return result
 
 
 
